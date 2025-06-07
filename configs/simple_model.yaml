@@ -1,0 +1,18 @@
+experiment_name: simple_model_experiment
+dataset: cifar10
+epochs: 10
+batch_size: 128
+learning_rate: 0.001
+weight_decay: 0.0001
+optimizer: adam
+criterion: cross_entropy
+
+model:
+  model_type: simple_model
+  in_channels: 3
+  block_type: conv
+  num_blocks: 3
+  base_channels: 32
+  activation: relu
+  use_batchnorm: true
+  dropout_rate: 0.2 

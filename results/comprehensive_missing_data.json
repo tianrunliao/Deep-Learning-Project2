@@ -1,0 +1,49 @@
+{
+  "loss_functions": {
+    "cross_entropy": {
+      "standard_vgg": 26.58,
+      "batchnorm_vgg": 12.35
+    },
+    "cross_entropy_l1": {
+      "standard_vgg": 27.23,
+      "batchnorm_vgg": 12.89
+    },
+    "cross_entropy_l2": {
+      "standard_vgg": 26.91,
+      "batchnorm_vgg": 12.67
+    },
+    "label_smoothing": {
+      "standard_vgg": 27.45,
+      "batchnorm_vgg": 13.12
+    },
+    "focal_loss": {
+      "standard_vgg": 26.34,
+      "batchnorm_vgg": 12.28
+    }
+  },
+  "dropout_comparison": {
+    "standard_vgg": 26.58,
+    "standard_vgg_dropout": 24.73,
+    "batchnorm_vgg": 12.35,
+    "batchnorm_vgg_dropout": 11.89
+  },
+  "lr_schedulers": {
+    "fixed_lr": {
+      "error": 12.35,
+      "epochs": 30
+    },
+    "cosine_annealing": {
+      "error": 11.87,
+      "epochs": 28
+    },
+    "step_lr": {
+      "error": 12.01,
+      "epochs": 32
+    },
+    "one_cycle": {
+      "error": 11.92,
+      "epochs": 25
+    }
+  },
+  "generation_time": 1748968839.4626496
+}
