@@ -1,0 +1,16 @@
+experiment_name: vgg_batchnorm_experiment
+dataset: cifar10
+epochs: 10
+batch_size: 128
+learning_rate: 0.001
+weight_decay: 0.0001
+optimizer: adam
+criterion: cross_entropy
+
+model:
+  model_type: vgg_bn
+  in_channels: 3
+  num_classes: 10
+  activation: relu
+  use_batchnorm: true
+  dropout_rate: 0.0 
