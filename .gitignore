@@ -19,6 +19,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.pt
+*.pth
 
 # Virtual environments
 .venv/
@@ -39,3 +41,4 @@ Thumbs.db
 
 # Git
 .git/
+data/
