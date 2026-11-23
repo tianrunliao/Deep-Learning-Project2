@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-BatchNorm对VGG模型影响的综合实验脚本
-作者：廖天润
-学号：22300680285
+Comprehensive experiment script for the effect of BatchNorm on VGG models
+Author: Tianrun Liao
+Student ID: 22300680285
 
-此脚本整合了所有实验功能，包括：
-1. 标准对比实验（已完成，使用现有checkpoint）
-2. 多学习率实验（已完成，使用现有结果）
-3. 优化策略实验（需要运行的新实验）
-4. 可视化生成
+This script combines all experiment functionality, including:
+1. Standard comparison experiment (completed, uses the existing checkpoints)
+2. Multi-learning-rate experiment (completed, uses the existing results)
+3. Optimization strategy experiments (new experiments that need to be run)
+4. Visualization generation
 """
 
 import os
@@ -21,7 +21,7 @@ from pathlib import Path
 from tqdm import tqdm
 import numpy as np
 
-# 导入核心功能模块
+# Import the core functionality module
 from functions import (
     VGGA, VGG_A_BatchNorm, prepare_data, 
     get_activation, get_optimizer, get_loss_function,
@@ -29,7 +29,7 @@ from functions import (
 )
 
 def check_existing_results():
-    """检查已有的实验结果"""
+    """Check the existing experiment results"""
     existing = {
         'standard_comparison': False,
         'multi_lr': False,
@@ -39,40 +39,40 @@ def check_existing_results():
         'visualization': False
     }
     
-    # 检查标准对比实验
+    # Check the standard comparison experiment
     if (Path('results/standard_vgg_results.json').exists() and 
         Path('results/vgg_batchnorm_results.json').exists()):
         existing['standard_comparison'] = True
-        print("✓ 标准对比实验已完成")
+        print("✓ Standard comparison experiment completed")
     
-    # 检查多学习率实验
+    # Check the multi-learning-rate experiment
     if Path('results/multi_lr_experiment').exists():
         existing['multi_lr'] = True
-        print("✓ 多学习率实验已完成")
+        print("✓ Multi-learning-rate experiment completed")
     
-    # 检查优化策略实验
+    # Check the optimization strategy experiments
     opt_path = Path('results/optimization_experiments')
     if opt_path.exists():
         if (opt_path / 'activation_results.json').exists():
             existing['activation'] = True
-            print("✓ 激活函数实验已完成")
+            print("✓ Activation function experiment completed")
         if (opt_path / 'loss_function_results.json').exists():
             existing['loss_function'] = True
-            print("✓ 损失函数实验已完成")
+            print("✓ Loss function experiment completed")
         if (opt_path / 'optimizer_results.json').exists():
             existing['optimizer'] = True
-            print("✓ 优化器实验已完成")
+            print("✓ Optimizer experiment completed")
     
-    # 检查可视化
+    # Check the visualizations
     if (Path('results/loss_comparison.png').exists() and
         Path('results/gradient_analysis.png').exists()):
         existing['visualization'] = True
-        print("✓ 可视化已生成")
+        print("✓ Visualizations generated")
     
     return existing
 
 def load_trained_model(model_type='standard', checkpoint_path=None):
-    """加载已训练的模型"""
+    """Load a trained model"""
     if model_type == 'standard':
         model = VGGA(use_batchnorm=False)
         default_path = 'results/checkpoints/standard_vgg_checkpoint.pt'
@@ -88,53 +88,53 @@ def load_trained_model(model_type='standard', checkpoint_path=None):
             model.load_state_dict(checkpoint['model_state_dict'])
         else:
             model.load_state_dict(checkpoint)
-        print(f"已加载模型: {checkpoint_path}")
+        print(f"Loaded model: {checkpoint_path}")
         return model, True
     else:
-        print(f"未找到checkpoint: {checkpoint_path}")
+        print(f"Checkpoint not found: {checkpoint_path}")
         return model, False
 
 def run_missing_experiments(existing):
-    """运行缺失的实验"""
+    """Run the missing experiments"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"\n使用设备: {device}")
+    print(f"\nUsing device: {device}")
     
-    # 准备数据
+    # Prepare the data
     train_loader, val_loader, test_loader, _ = prepare_data(batch_size=128)
     
-    # 运行激活函数实验
+    # Run the activation function experiments
     if not existing['activation']:
-        print("\n开始激活函数对比实验...")
+        print("\nStarting the activation function comparison experiments...")
         run_activation_experiments(train_loader, val_loader, test_loader, device)
     
-    # 运行损失函数实验
+    # Run the loss function experiments
     if not existing['loss_function']:
-        print("\n开始损失函数对比实验...")
+        print("\nStarting the loss function comparison experiments...")
         run_loss_function_experiments(train_loader, val_loader, test_loader, device)
     
-    # 运行优化器实验
+    # Run the optimizer experiments
     if not existing['optimizer']:
-        print("\n开始优化器对比实验...")
+        print("\nStarting the optimizer comparison experiments...")
         run_optimizer_experiments(train_loader, val_loader, test_loader, device)
 
 def run_activation_experiments(train_loader, val_loader, test_loader, device):
-    """运行激活函数对比实验"""
+    """Run the activation function comparison experiments"""
     from optimization_experiments import train_model
     
     activations = ['relu', 'leaky_relu', 'elu', 'swish']
     results = {}
     
     for use_bn in [False, True]:
-        model_type = "BatchNorm VGG" if use_bn else "标准VGG"
+        model_type = "BatchNorm VGG" if use_bn else "Standard VGG"
         results[model_type] = {}
         
         for activation in activations:
-            print(f"\n训练 {model_type} with {activation}")
+            print(f"\nTraining {model_type} with {activation}")
             
-            # 对于BatchNorm模型，我们使用固定的ReLU，因为VGG_A_BatchNorm不支持自定义激活函数
+            # For the BatchNorm model we use a fixed ReLU, because VGG_A_BatchNorm does not support custom activation functions
             if use_bn:
                 if activation != 'relu':
-                    print(f"跳过 {activation} (BatchNorm模型仅支持ReLU)")
+                    print(f"Skipping {activation} (the BatchNorm model only supports ReLU)")
                     results[model_type][activation] = {
                         'best_test_error': 'N/A',
                         'best_epoch': 'N/A'
@@ -154,15 +154,15 @@ def run_activation_experiments(train_loader, val_loader, test_loader, device):
             )
             
             results[model_type][activation] = result
-            print(f"完成: 测试误差 {result['best_test_error']:.2f}%")
+            print(f"Done: test error {result['best_test_error']:.2f}%")
     
-    # 保存结果
+    # Save the results
     os.makedirs('results/optimization_experiments', exist_ok=True)
     with open('results/optimization_experiments/activation_results.json', 'w') as f:
         json.dump(results, f, indent=2)
 
 def run_loss_function_experiments(train_loader, val_loader, test_loader, device):
-    """运行损失函数对比实验"""
+    """Run the loss function comparison experiments"""
     from optimization_experiments import train_model, train_model_with_l1
     
     loss_configs = [
@@ -175,11 +175,11 @@ def run_loss_function_experiments(train_loader, val_loader, test_loader, device)
     results = {}
     
     for use_bn in [False, True]:
-        model_type = "BatchNorm VGG" if use_bn else "标准VGG"
+        model_type = "BatchNorm VGG" if use_bn else "Standard VGG"
         results[model_type] = {}
         
         for loss_name, criterion, l1_lambda, weight_decay in loss_configs:
-            print(f"\n训练 {model_type} with {loss_name}")
+            print(f"\nTraining {model_type} with {loss_name}")
             
             if use_bn:
                 model = VGG_A_BatchNorm()
@@ -202,14 +202,14 @@ def run_loss_function_experiments(train_loader, val_loader, test_loader, device)
                 )
             
             results[model_type][loss_name] = result
-            print(f"完成: 测试误差 {result['best_test_error']:.2f}%")
+            print(f"Done: test error {result['best_test_error']:.2f}%")
     
-    # 保存结果
+    # Save the results
     with open('results/optimization_experiments/loss_function_results.json', 'w') as f:
         json.dump(results, f, indent=2)
 
 def run_optimizer_experiments(train_loader, val_loader, test_loader, device):
-    """运行优化器对比实验"""
+    """Run the optimizer comparison experiments"""
     from optimization_experiments import train_model
     
     optimizer_configs = [
@@ -223,11 +223,11 @@ def run_optimizer_experiments(train_loader, val_loader, test_loader, device):
     results = {}
     
     for use_bn in [False, True]:
-        model_type = "BatchNorm VGG" if use_bn else "标准VGG"
+        model_type = "BatchNorm VGG" if use_bn else "Standard VGG"
         results[model_type] = {}
         
         for opt_name, opt_func in optimizer_configs:
-            print(f"\n训练 {model_type} with {opt_name}")
+            print(f"\nTraining {model_type} with {opt_name}")
             
             if use_bn:
                 model = VGG_A_BatchNorm()
@@ -246,24 +246,24 @@ def run_optimizer_experiments(train_loader, val_loader, test_loader, device):
             )
             
             results[model_type][opt_name] = result
-            print(f"完成: 测试误差 {result['best_test_error']:.2f}%")
+            print(f"Done: test error {result['best_test_error']:.2f}%")
     
-    # 保存结果
+    # Save the results
     with open('results/optimization_experiments/optimizer_results.json', 'w') as f:
         json.dump(results, f, indent=2)
 
 def generate_all_visualizations():
-    """生成所有可视化图表"""
-    print("\n生成可视化图表...")
+    """Generate all visualization charts"""
+    print("\nGenerating visualization charts...")
     
-    # 生成中文图表
+    # Generate the charts
     os.system('python3 visualization.py')
     
-    print("✓ 所有可视化完成")
+    print("✓ All visualizations completed")
 
 def generate_final_report():
-    """生成最终的实验报告"""
-    print("\n生成最终报告...")
+    """Generate the final experiment report"""
+    print("\nGenerating the final report...")
     
     report_content = f"""BatchNorm对VGG模型影响的实验研究
 作者：廖天润
@@ -313,36 +313,36 @@ def generate_final_report():
     with open('experiment_report.txt', 'w', encoding='utf-8') as f:
         f.write(report_content)
     
-    print("✓ 报告已生成: experiment_report.txt")
+    print("✓ Report generated: experiment_report.txt")
 
 def main():
-    """主函数"""
+    """Main function"""
     print("="*60)
-    print("BatchNorm对VGG模型影响的综合实验")
-    print("作者：廖天润 (22300680285)")
+    print("Comprehensive experiments on the effect of BatchNorm on VGG models")
+    print("Author: Tianrun Liao (22300680285)")
     print("="*60)
     
-    # 检查已有结果
-    print("\n检查已有实验结果...")
+    # Check the existing results
+    print("\nChecking existing experiment results...")
     existing = check_existing_results()
     
-    # 运行缺失的实验
+    # Run the missing experiments
     missing_count = sum(1 for v in existing.values() if not v)
     if missing_count > 0:
-        print(f"\n需要运行 {missing_count} 个缺失的实验")
+        print(f"\nNeed to run {missing_count} missing experiments")
         run_missing_experiments(existing)
     else:
-        print("\n所有实验已完成！")
+        print("\nAll experiments are already completed!")
     
-    # 生成可视化
+    # Generate the visualizations
     if not existing['visualization']:
         generate_all_visualizations()
     
-    # 生成最终报告
+    # Generate the final report
     generate_final_report()
     
-    print("\n实验全部完成！")
-    print("查看 experiment_report.txt 获取完整报告")
+    print("\nAll experiments finished!")
+    print("See experiment_report.txt for the full report")
 
 if __name__ == "__main__":
     main() 

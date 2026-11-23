@@ -16,9 +16,9 @@ import yaml
 import math
 from pathlib import Path
 
-# 激活函数部分
+# Activation functions
 def get_activation(name):
-    """获取激活函数"""
+    """Get an activation function"""
     activations = {
         'relu': nn.ReLU,
         'leaky_relu': nn.LeakyReLU,
@@ -32,41 +32,41 @@ def get_activation(name):
     }
     
     if name.lower() not in activations:
-        raise ValueError(f"不支持的激活函数: {name}")
+        raise ValueError(f"Unsupported activation function: {name}")
     
     return activations[name.lower()]()
 
 class Swish(nn.Module):
-    """Swish激活函数: x * sigmoid(x)"""
+    """Swish activation function: x * sigmoid(x)"""
     def forward(self, x):
         return x * torch.sigmoid(x)
 
 class Mish(nn.Module):
-    """Mish激活函数: x * tanh(softplus(x))"""
+    """Mish activation function: x * tanh(softplus(x))"""
     def forward(self, x):
         return x * torch.tanh(F.softplus(x))
 
-# 模型组件
+# Model components
 class ConvBlock(nn.Module):
-    """基础卷积块：Conv2d + 激活函数"""
+    """Basic convolution block: Conv2d + activation function"""
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, 
                  activation='relu', use_batchnorm=False, dropout_rate=0):
         super(ConvBlock, self).__init__()
         
         layers = []
-        # 卷积层
+        # Convolution layer
         layers.append(nn.Conv2d(in_channels, out_channels, kernel_size, 
                                stride=stride, padding=padding, bias=not use_batchnorm))
         
-        # 批归一化层（可选）
+        # Batch normalization layer (optional)
         if use_batchnorm:
             layers.append(nn.BatchNorm2d(out_channels))
         
-        # 激活函数
+        # Activation function
         if activation:
             layers.append(get_activation(activation))
             
-        # Dropout层（可选）
+        # Dropout layer (optional)
         if dropout_rate > 0:
             layers.append(nn.Dropout(dropout_rate))
             
@@ -76,7 +76,7 @@ class ConvBlock(nn.Module):
         return self.block(x)
 
 class ResidualBlock(nn.Module):
-    """残差块：两个卷积层 + 残差连接"""
+    """Residual block: two convolution layers + residual connection"""
     def __init__(self, channels, activation='relu', use_batchnorm=False, dropout_rate=0):
         super(ResidualBlock, self).__init__()
         
@@ -93,7 +93,7 @@ class ResidualBlock(nn.Module):
         residual = x
         out = self.conv1(x)
         out = self.conv2(out)
-        out += residual  # 残差连接
+        out += residual  # Residual connection
         
         if self.activation:
             out = self.activation(out)
@@ -104,7 +104,7 @@ class ResidualBlock(nn.Module):
         return out
 
 class BottleneckBlock(nn.Module):
-    """瓶颈块：3个卷积层（降维、特征提取、升维）"""
+    """Bottleneck block: 3 convolution layers (dimension reduction, feature extraction, dimension expansion)"""
     def __init__(self, in_channels, mid_channels, out_channels, 
                  activation='relu', use_batchnorm=False, dropout_rate=0):
         super(BottleneckBlock, self).__init__()
@@ -118,7 +118,7 @@ class BottleneckBlock(nn.Module):
         self.conv3 = ConvBlock(mid_channels, out_channels, kernel_size=1, padding=0,
                               activation=None, use_batchnorm=use_batchnorm)
         
-        # 如果输入输出通道数不同，需要一个1x1卷积进行调整
+        # If the input and output channel counts differ, a 1x1 convolution is needed to match them
         self.shortcut = nn.Sequential()
         if in_channels != out_channels:
             self.shortcut = ConvBlock(in_channels, out_channels, kernel_size=1, padding=0,
@@ -134,7 +134,7 @@ class BottleneckBlock(nn.Module):
         out = self.conv2(out)
         out = self.conv3(out)
         
-        out += residual  # 残差连接
+        out += residual  # Residual connection
         
         if self.activation:
             out = self.activation(out)
@@ -144,7 +144,7 @@ class BottleneckBlock(nn.Module):
             
         return out
 
-# 模型定义
+# Model definitions
 class SimpleCNN(nn.Module):
     def __init__(self, num_classes=10):
         super(SimpleCNN, self).__init__()
@@ -174,7 +174,7 @@ class SimpleCNN(nn.Module):
         return x
 
 class SimpleModel(nn.Module):
-    """简单的CNN模型，根据配置动态组合不同模块"""
+    """A simple CNN model that dynamically combines different blocks based on the configuration"""
     def __init__(self, in_channels=3, num_classes=10, block_type='conv', 
                  num_blocks=4, base_channels=64, activation='relu',
                  use_batchnorm=False, dropout_rate=0):
@@ -183,7 +183,7 @@ class SimpleModel(nn.Module):
         self.initial_conv = ConvBlock(in_channels, base_channels, kernel_size=3, padding=1,
                                      activation=activation, use_batchnorm=use_batchnorm)
         
-        # 动态创建模型主体部分
+        # Dynamically build the main body of the model
         blocks = []
         current_channels = base_channels
         
@@ -197,7 +197,7 @@ class SimpleModel(nn.Module):
                 blocks.append(ResidualBlock(current_channels, 
                                            activation=activation,
                                            use_batchnorm=use_batchnorm, dropout_rate=dropout_rate))
-                # 每两个残差块后增加通道数
+                # Increase the channel count after every two residual blocks
                 if i % 2 == 1:
                     blocks.append(ConvBlock(current_channels, current_channels * 2, 
                                           activation=activation,
@@ -209,14 +209,14 @@ class SimpleModel(nn.Module):
                                              use_batchnorm=use_batchnorm, dropout_rate=dropout_rate))
                 current_channels *= 2
         
-        blocks.append(nn.MaxPool2d(2))  # 添加最后的池化层
+        blocks.append(nn.MaxPool2d(2))  # Add the final pooling layer
         self.blocks = nn.Sequential(*blocks)
         
-        # 全局平均池化和分类器
+        # Global average pooling and classifier
         self.global_pool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(current_channels, num_classes)
         
-        # 计算参数量
+        # Count the parameters
         self.param_count = sum(p.numel() for p in self.parameters() if p.requires_grad)
         
     def forward(self, x):
@@ -228,12 +228,12 @@ class SimpleModel(nn.Module):
         return x
 
 class VGGA(nn.Module):
-    """VGG-A模型（VGG11的别名）"""
+    """VGG-A model (an alias for VGG11)"""
     def __init__(self, in_channels=3, num_classes=10, activation='relu', 
                  use_batchnorm=False, dropout_rate=0.5):
         super(VGGA, self).__init__()
         
-        # VGG-A配置: [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
+        # VGG-A configuration: [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
         cfg = [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
         
         self.features = self._make_layers(cfg, in_channels, activation, use_batchnorm)
@@ -269,23 +269,23 @@ class VGGA(nn.Module):
         x = self.classifier(x)
         return x
 
-# 自定义损失函数和优化器部分
+# Custom loss functions and optimizers
 class CustomLoss:
-    """自定义损失函数集合"""
+    """Collection of custom loss functions"""
     
     @staticmethod
     def cross_entropy_with_label_smoothing(outputs, targets, smoothing=0.1):
-        """带标签平滑的交叉熵损失"""
+        """Cross-entropy loss with label smoothing"""
         batch_size = targets.size(0)
         num_classes = outputs.size(1)
         
-        # 转换为one-hot编码
+        # Convert to one-hot encoding
         targets_one_hot = torch.zeros_like(outputs).scatter_(1, targets.unsqueeze(1), 1)
         
-        # 应用标签平滑
+        # Apply label smoothing
         targets_smooth = (1 - smoothing) * targets_one_hot + smoothing / num_classes
         
-        # 计算损失
+        # Compute the loss
         log_probs = F.log_softmax(outputs, dim=1)
         loss = -(targets_smooth * log_probs).sum(dim=1).mean()
         
@@ -293,42 +293,42 @@ class CustomLoss:
     
     @staticmethod
     def focal_loss(outputs, targets, gamma=2.0, alpha=0.25):
-        """Focal Loss，用于处理类别不平衡问题"""
+        """Focal Loss, used to handle class imbalance"""
         num_classes = outputs.size(1)
         
-        # 转换为one-hot编码
+        # Convert to one-hot encoding
         targets_one_hot = torch.zeros_like(outputs).scatter_(1, targets.unsqueeze(1), 1)
         
-        # 计算softmax概率
+        # Compute softmax probabilities
         probs = F.softmax(outputs, dim=1)
         
-        # 计算Focal Loss
-        pt = (targets_one_hot * probs).sum(1)  # 目标类别的概率
+        # Compute the Focal Loss
+        pt = (targets_one_hot * probs).sum(1)  # Probability of the target class
         focal_weight = (1 - pt) ** gamma
         
-        # 使用alpha平衡正负样本
+        # Use alpha to balance positive and negative samples
         if alpha is not None:
             alpha_weight = targets_one_hot * alpha + (1 - targets_one_hot) * (1 - alpha)
             focal_weight = focal_weight * alpha_weight.sum(dim=1)
         
-        # 计算交叉熵损失
+        # Compute the cross-entropy loss
         ce_loss = F.cross_entropy(outputs, targets, reduction='none')
         
-        # 应用权重
+        # Apply the weights
         loss = (focal_weight * ce_loss).mean()
         
         return loss
 
 def get_optimizer(name, parameters, **kwargs):
-    """获取优化器
+    """Get an optimizer
     
     Args:
-        name: 优化器名称
-        parameters: 模型参数
-        **kwargs: 优化器的附加参数
+        name: Optimizer name
+        parameters: Model parameters
+        **kwargs: Additional arguments for the optimizer
     
     Returns:
-        优化器实例
+        Optimizer instance
     """
     optimizers = {
         'sgd': optim.SGD,
@@ -340,19 +340,19 @@ def get_optimizer(name, parameters, **kwargs):
     }
     
     if name.lower() not in optimizers:
-        raise ValueError(f"不支持的优化器: {name}")
+        raise ValueError(f"Unsupported optimizer: {name}")
     
     return optimizers[name.lower()](parameters, **kwargs)
 
 def get_loss_function(name, **kwargs):
-    """获取损失函数
+    """Get a loss function
     
     Args:
-        name: 损失函数名称
-        **kwargs: 损失函数的附加参数
+        name: Loss function name
+        **kwargs: Additional arguments for the loss function
     
     Returns:
-        损失函数实例
+        Loss function instance
     """
     loss_functions = {
         'cross_entropy': nn.CrossEntropyLoss,
@@ -367,14 +367,14 @@ def get_loss_function(name, **kwargs):
     }
     
     if name.lower() not in loss_functions:
-        raise ValueError(f"不支持的损失函数: {name}")
+        raise ValueError(f"Unsupported loss function: {name}")
     
     return loss_functions[name.lower()]()
 
-# 数据加载相关函数
+# Data loading functions
 def prepare_data(batch_size=64, test_split=0.2, dataset='cifar10'):
-    """准备数据集和数据加载器"""
-    # 数据转换
+    """Prepare the datasets and data loaders"""
+    # Data transforms
     train_transform = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -387,7 +387,7 @@ def prepare_data(batch_size=64, test_split=0.2, dataset='cifar10'):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616))
     ])
     
-    # 加载数据集
+    # Load the dataset
     if dataset.lower() == 'cifar10':
         full_dataset = torchvision.datasets.CIFAR10(
             root='./data', train=True, download=True, transform=train_transform
@@ -405,14 +405,14 @@ def prepare_data(batch_size=64, test_split=0.2, dataset='cifar10'):
         )
         num_classes = 100
     else:
-        raise ValueError(f"不支持的数据集: {dataset}")
+        raise ValueError(f"Unsupported dataset: {dataset}")
     
-    # 划分训练集和验证集
+    # Split into training and validation sets
     val_size = int(len(full_dataset) * test_split)
     train_size = len(full_dataset) - val_size
     train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
     
-    # 创建数据加载器（Windows兼容：num_workers=0）
+    # Create data loaders (Windows-compatible: num_workers=0)
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, num_workers=0
     )
@@ -425,7 +425,7 @@ def prepare_data(batch_size=64, test_split=0.2, dataset='cifar10'):
     
     return train_loader, val_loader, test_loader, num_classes
 
-# 训练优化器类
+# Training optimizer class
 class TrainingOptimizer:
     def __init__(self, model, optimizer, train_loader, criterion, device):
         self.model = model
@@ -434,29 +434,29 @@ class TrainingOptimizer:
         self.criterion = criterion
         self.device = device
         self.grad_accum_steps = 1
-        self.scaler = None  # 用于混合精度训练
+        self.scaler = None  # Used for mixed precision training
         
     def enable_mixed_precision(self):
-        """启用混合精度训练"""
+        """Enable mixed precision training"""
         if torch.cuda.is_available():
             self.scaler = torch.cuda.amp.GradScaler()
-            print("已启用混合精度训练")
+            print("Mixed precision training enabled")
         else:
-            print("CUDA不可用，无法启用混合精度训练")
+            print("CUDA is not available, cannot enable mixed precision training")
     
     def optimize_memory_format(self):
-        """优化内存格式以提高性能"""
+        """Optimize the memory format to improve performance"""
         if torch.cuda.is_available():
             self.model = self.model.to(memory_format=torch.channels_last)
-            print("已优化内存格式")
+            print("Memory format optimized")
     
     def set_gradient_accumulation(self, steps=2):
-        """设置梯度累积步数"""
+        """Set the number of gradient accumulation steps"""
         self.grad_accum_steps = steps
-        print(f"已设置梯度累积，每{steps}步更新一次")
+        print(f"Gradient accumulation set: update once every {steps} steps")
     
     def optimize_dataloader(self, num_workers=4, pin_memory=True):
-        """优化数据加载器"""
+        """Optimize the data loader"""
         self.train_loader = DataLoader(
             self.train_loader.dataset,
             batch_size=self.train_loader.batch_size,
@@ -464,10 +464,10 @@ class TrainingOptimizer:
             num_workers=num_workers,
             pin_memory=pin_memory
         )
-        print(f"已优化数据加载器: num_workers={num_workers}, pin_memory={pin_memory}")
+        print(f"Optimized data loader: num_workers={num_workers}, pin_memory={pin_memory}")
     
     def train_epoch(self, epoch):
-        """训练一个epoch"""
+        """Train for one epoch"""
         self.model.train()
         running_loss = 0.0
         correct = 0
@@ -476,20 +476,20 @@ class TrainingOptimizer:
         for i, (inputs, targets) in enumerate(tqdm(self.train_loader, desc=f"Epoch {epoch}")):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             
-            # 如果使用通道优先格式
+            # If using the channel-priority memory format
             if hasattr(torch.cuda, 'amp') and self.device.type == 'cuda':
                 inputs = inputs.to(memory_format=torch.channels_last)
             
-            # 是否使用混合精度
+            # Whether to use mixed precision
             if self.scaler:
                 with torch.cuda.amp.autocast():
                     outputs = self.model(inputs)
                     loss = self.criterion(outputs, targets)
-                    loss = loss / self.grad_accum_steps  # 梯度累积时缩小损失
+                    loss = loss / self.grad_accum_steps  # Scale down the loss for gradient accumulation
                 
                 self.scaler.scale(loss).backward()
                 
-                # 梯度累积
+                # Gradient accumulation
                 if (i + 1) % self.grad_accum_steps == 0:
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
@@ -497,11 +497,11 @@ class TrainingOptimizer:
             else:
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, targets)
-                loss = loss / self.grad_accum_steps  # 梯度累积时缩小损失
+                loss = loss / self.grad_accum_steps  # Scale down the loss for gradient accumulation
                 
                 loss.backward()
                 
-                # 梯度累积
+                # Gradient accumulation
                 if (i + 1) % self.grad_accum_steps == 0:
                     self.optimizer.step()
                     self.optimizer.zero_grad()
@@ -516,16 +516,16 @@ class TrainingOptimizer:
         
         return epoch_loss, epoch_acc
 
-# 训练器类
+# Trainer class
 class Trainer:
     def __init__(self, model, config, device=None):
-        """训练器类，负责模型的训练、验证和日志记录"""
+        """Trainer class, responsible for model training, validation and logging"""
         self.model = model
         self.config = config
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
         
-        # 从配置中读取参数
+        # Read parameters from the config
         self.epochs = config.get('epochs', 100)
         self.learning_rate = config.get('learning_rate', 0.001)
         self.weight_decay = config.get('weight_decay', 0.0001)
@@ -537,25 +537,25 @@ class Trainer:
         self.use_optimization = config.get('use_optimization', False)
         self.resume_training = config.get('resume_training', False)
         
-        # 准备数据
+        # Prepare the data
         self.train_loader, self.val_loader, self.test_loader, num_classes = prepare_data(
             batch_size=self.batch_size, 
             dataset=self.dataset_name
         )
         
-        # 设置优化器
+        # Set up the optimizer
         optimizer_params = {
             'lr': self.learning_rate,
             'weight_decay': self.weight_decay
         }
         
-        # 获取优化器
+        # Get the optimizer
         self.optimizer = get_optimizer(self.optimizer_name, self.model.parameters(), **optimizer_params)
         
-        # 获取损失函数
+        # Get the loss function
         self.criterion = get_loss_function(self.criterion_name)
         
-        # 训练优化器
+        # Training optimizer
         if self.use_optimization:
             self.training_optimizer = TrainingOptimizer(
                 self.model, self.optimizer, self.train_loader, self.criterion, self.device
@@ -564,7 +564,7 @@ class Trainer:
             self.training_optimizer.optimize_memory_format()
             self.training_optimizer.set_gradient_accumulation(steps=2)
         
-        # 存储训练记录
+        # Store the training history
         self.train_losses = []
         self.train_accuracies = []
         self.val_losses = []
@@ -573,12 +573,12 @@ class Trainer:
         self.current_epoch = 0
         self.start_epoch = 0
         
-        # 尝试加载检查点
+        # Try to load a checkpoint
         if self.resume_training:
             self._load_checkpoint()
     
     def train_epoch(self):
-        """训练一个完整的epoch"""
+        """Train for one full epoch"""
         if self.use_optimization:
             epoch_loss, epoch_acc = self.training_optimizer.train_epoch(self.current_epoch + 1)
         else:
@@ -609,7 +609,7 @@ class Trainer:
         return epoch_loss, epoch_acc
     
     def validate_epoch(self):
-        """验证一个完整的epoch"""
+        """Validate for one full epoch"""
         self.model.eval()
         total_loss = 0.0
         correct = 0
@@ -633,7 +633,7 @@ class Trainer:
         self.val_losses.append(epoch_loss)
         self.val_accuracies.append(epoch_acc)
         
-        # 保存最佳模型
+        # Save the best model
         if epoch_acc > self.best_val_acc:
             self.best_val_acc = epoch_acc
             self._save_model('best_model.pt')
@@ -641,9 +641,9 @@ class Trainer:
         return epoch_loss, epoch_acc
     
     def _save_checkpoint(self):
-        """保存训练检查点，用于断点续训"""
+        """Save a training checkpoint, used to resume interrupted training"""
         checkpoint = {
-            'epoch': self.current_epoch + 1,  # 保存下一个要训练的epoch
+            'epoch': self.current_epoch + 1,  # Save the next epoch to be trained
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'train_losses': self.train_losses,
@@ -659,82 +659,82 @@ class Trainer:
         
         checkpoint_path = os.path.join(save_dir, 'checkpoint.pt')
         torch.save(checkpoint, checkpoint_path)
-        print(f"检查点已保存：{checkpoint_path}，当前epoch：{self.current_epoch}")
+        print(f"Checkpoint saved: {checkpoint_path}, current epoch: {self.current_epoch}")
     
     def _load_checkpoint(self):
-        """加载训练检查点，用于断点续训"""
+        """Load a training checkpoint, used to resume interrupted training"""
         checkpoint_path = os.path.join('results', self.experiment_name, 'checkpoints', 'checkpoint.pt')
         
         if os.path.exists(checkpoint_path):
-            print(f"加载检查点：{checkpoint_path}")
+            print(f"Loading checkpoint: {checkpoint_path}")
             checkpoint = torch.load(checkpoint_path, map_location=self.device)
             
-            # 加载模型权重
+            # Load the model weights
             self.model.load_state_dict(checkpoint['model_state_dict'])
             
-            # 加载优化器状态
+            # Load the optimizer state
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             
-            # 加载训练历史
+            # Load the training history
             self.train_losses = checkpoint['train_losses']
             self.train_accuracies = checkpoint['train_accuracies']
             self.val_losses = checkpoint['val_losses']
             self.val_accuracies = checkpoint['val_accuracies']
             self.best_val_acc = checkpoint['best_val_acc']
             
-            # 设置起始epoch
+            # Set the starting epoch
             self.start_epoch = checkpoint['epoch']
-            print(f"从epoch {self.start_epoch}继续训练")
+            print(f"Resuming training from epoch {self.start_epoch} onward")
         else:
-            print("未找到检查点，将从头开始训练")
+            print("No checkpoint found, training from scratch")
     
     def train(self):
-        """完整的训练过程"""
-        print(f"开始训练 | 模型: {type(self.model).__name__} | 设备: {self.device}")
-        print(f"配置: 数据集={self.dataset_name}, 优化器={self.optimizer_name}, 学习率={self.learning_rate}")
+        """Full training process"""
+        print(f"Starting training | Model: {type(self.model).__name__} | Device: {self.device}")
+        print(f"Config: dataset={self.dataset_name}, optimizer={self.optimizer_name}, learning rate={self.learning_rate}")
         
         start_time = time.time()
         
         for epoch in range(self.start_epoch, self.epochs):
             self.current_epoch = epoch
             
-            # 训练阶段
+            # Training phase
             train_loss, train_acc = self.train_epoch()
             
-            # 验证阶段
+            # Validation phase
             val_loss, val_acc = self.validate_epoch()
             
-            # 打印统计信息
+            # Print statistics
             print(f"Epoch {epoch+1}/{self.epochs} | "
                   f"Train Loss: {train_loss:.4f}, Acc: {train_acc:.2f}% | "
                   f"Val Loss: {val_loss:.4f}, Acc: {val_acc:.2f}%")
             
-            # 保存检查点
+            # Save a checkpoint
             self._save_checkpoint()
             
-            # 绘制当前训练曲线
+            # Plot the current training curves
             self._plot_training_curves()
         
-        # 保存最终模型
+        # Save the final model
         self._save_model('final_model.pt')
         
-        # 保存训练历史
+        # Save the training history
         self._save_history()
         
-        # 训练完成
+        # Training finished
         train_time = time.time() - start_time
-        print(f"训练完成! 总时间: {train_time:.2f}秒")
-        print(f"最佳验证集准确率: {self.best_val_acc:.2f}%")
+        print(f"Training complete! Total time: {train_time:.2f} seconds")
+        print(f"Best validation accuracy: {self.best_val_acc:.2f}%")
     
     def _save_model(self, filename):
-        """保存模型"""
+        """Save the model"""
         save_dir = os.path.join('results', self.experiment_name, 'models')
         os.makedirs(save_dir, exist_ok=True)
         
         torch.save(self.model.state_dict(), os.path.join(save_dir, filename))
     
     def _save_history(self):
-        """保存训练历史"""
+        """Save the training history"""
         history = {
             'train_loss': self.train_losses,
             'train_acc': self.train_accuracies,
@@ -751,28 +751,28 @@ class Trainer:
             json.dump(history, f)
     
     def _plot_training_curves(self):
-        """绘制训练曲线"""
+        """Plot the training curves"""
         save_dir = os.path.join('results', self.experiment_name, 'visualizations')
         os.makedirs(save_dir, exist_ok=True)
         
-        # 准确率曲线
+        # Accuracy curves
         plt.figure(figsize=(10, 5))
-        plt.plot(range(1, len(self.train_accuracies) + 1), self.train_accuracies, 'b-', label='训练准确率')
-        plt.plot(range(1, len(self.val_accuracies) + 1), self.val_accuracies, 'r-', label='验证准确率')
-        plt.title('模型准确率')
+        plt.plot(range(1, len(self.train_accuracies) + 1), self.train_accuracies, 'b-', label='Training Accuracy')
+        plt.plot(range(1, len(self.val_accuracies) + 1), self.val_accuracies, 'r-', label='Validation Accuracy')
+        plt.title('Model Accuracy')
         plt.xlabel('Epoch')
-        plt.ylabel('准确率 (%)')
+        plt.ylabel('Accuracy (%)')
         plt.legend()
         plt.grid(True)
         plt.savefig(os.path.join(save_dir, 'accuracy_curve.png'))
         
-        # 损失曲线
+        # Loss curves
         plt.figure(figsize=(10, 5))
-        plt.plot(range(1, len(self.train_losses) + 1), self.train_losses, 'b-', label='训练损失')
-        plt.plot(range(1, len(self.val_losses) + 1), self.val_losses, 'r-', label='验证损失')
-        plt.title('模型损失')
+        plt.plot(range(1, len(self.train_losses) + 1), self.train_losses, 'b-', label='Training Loss')
+        plt.plot(range(1, len(self.val_losses) + 1), self.val_losses, 'r-', label='Validation Loss')
+        plt.title('Model Loss')
         plt.xlabel('Epoch')
-        plt.ylabel('损失')
+        plt.ylabel('Loss')
         plt.legend()
         plt.grid(True)
         plt.savefig(os.path.join(save_dir, 'loss_curve.png'))
@@ -780,13 +780,13 @@ class Trainer:
         plt.close('all')
     
     def test_model(self):
-        """在测试集上测试模型"""
+        """Evaluate the model on the test set"""
         self.model.eval()
         correct = 0
         total = 0
         
         with torch.no_grad():
-            for inputs, targets in tqdm(self.test_loader, desc="测试"):
+            for inputs, targets in tqdm(self.test_loader, desc="Testing"):
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 
                 outputs = self.model(inputs)
@@ -795,23 +795,23 @@ class Trainer:
                 correct += predicted.eq(targets).sum().item()
         
         test_acc = 100. * correct / total
-        print(f"测试集准确率: {test_acc:.2f}%")
+        print(f"Test accuracy: {test_acc:.2f}%")
         return test_acc
 
-# 配置加载器函数
+# Config loader function
 def load_config(config_path):
-    """加载配置文件"""
+    """Load a configuration file"""
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     return config 
 
-# 添加VGG_A_BatchNorm模型
+# Add the VGG_A_BatchNorm model
 class VGG_A_BatchNorm(nn.Module):
     """
-    带有BatchNorm的VGG_A模型
+    VGG_A model with BatchNorm
     
-    实现了和VGG_A相同的网络结构，但在每个卷积层后添加了BatchNorm2d层
-    输入假设为32x32x3的CIFAR10图像
+    Implements the same network architecture as VGG_A, but adds a BatchNorm2d layer after every convolution layer
+    Inputs are assumed to be 32x32x3 CIFAR10 images
     """
     def __init__(self, inp_ch=3, num_classes=10, init_weights=True):
         super().__init__()
@@ -894,15 +894,15 @@ class VGG_A_BatchNorm(nn.Module):
 
 def get_accuracy(model, data_loader, device):
     """
-    计算模型在给定数据加载器上的准确率
+    Compute the model's accuracy on the given data loader
     
     Args:
-        model: 要评估的模型
-        data_loader: 数据加载器
-        device: 计算设备 (CPU或CUDA)
+        model: The model to evaluate
+        data_loader: The data loader
+        device: The compute device (CPU or CUDA)
         
     Returns:
-        float: 准确率百分比
+        float: Accuracy as a percentage
     """
     model.eval()
     correct = 0
