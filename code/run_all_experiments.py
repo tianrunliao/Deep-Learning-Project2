@@ -265,46 +265,46 @@ def generate_final_report():
     """Generate the final experiment report"""
     print("\nGenerating the final report...")
     
-    report_content = f"""BatchNorm对VGG模型影响的实验研究
-作者：廖天润
-学号：22300680285
-代码仓库：https://github.com/tianrunliao/Deep-Learning-Project2
+    report_content = f"""Experimental study of the effect of BatchNorm on VGG models
+Author: Tianrun Liao
+Student ID: 22300680285
+Code repository: https://github.com/tianrunliao/Deep-Learning-Project2
 
-一、项目概述
-本项目深入研究了批量归一化（Batch Normalization）技术对VGG网络在CIFAR-10数据集上的影响。
+I. Project overview
+This project studies the effect of Batch Normalization on VGG networks trained on CIFAR-10.
 
-二、实验结果
-存档的实验日志：results/multi_lr_experiment/standard_vgg/results.json 与 results/multi_lr_experiment/vgg_batchnorm/results.json。
+II. Experiment results
+Archived experiment logs: results/multi_lr_experiment/standard_vgg/results.json and results/multi_lr_experiment/vgg_batchnorm/results.json.
 
-三、项目文件说明
+III. Project files
 
-1. 核心代码:
-   - functions.py: 模型定义和训练功能
-   - run_all_experiments.py: 主实验脚本
-   - visualization.py: 可视化生成
+1. Core code:
+   - functions.py: model definitions and training utilities
+   - run_all_experiments.py: main experiment script
+   - visualization.py: figure generation
 
-2. 实验结果:
-   - results/: 所有实验结果和图表
-   - results/checkpoints/: 训练好的模型
-   - results/optimization_experiments/: 优化策略实验结果
+2. Experiment results:
+   - results/: all experiment results and figures
+   - results/checkpoints/: trained models
+   - results/optimization_experiments/: optimization-strategy experiment results
 
-3. 配置文件:
-   - configs/: 模型配置文件
+3. Configuration files:
+   - configs/: model configuration files
 
-四、复现说明
+IV. Reproduction
 
-1. 环境要求:
+1. Requirements:
    - Python 3.7+
    - PyTorch 1.8+
-   - CUDA (可选)
+   - CUDA (optional)
 
-2. 运行实验:
+2. Run the experiments:
    python3 run_all_experiments.py
 
-3. 生成可视化:
+3. Generate the figures:
    python3 visualization.py
 
-五、参考文献
+V. References
 [1] Ioffe, S., & Szegedy, C. (2015). Batch normalization: Accelerating deep network training by reducing internal covariate shift.
 [2] Santurkar, S., et al. (2018). How does batch normalization help optimization?
 [3] Simonyan, K., & Zisserman, A. (2014). Very deep convolutional networks for large-scale image recognition.
