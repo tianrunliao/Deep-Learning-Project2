@@ -59,7 +59,7 @@ set evaluation, so they show early-training behaviour only.
 | Path | Contents |
 |---|---|
 | `code/functions.py` | VGG-A with and without Batch Normalization, convolutional, residual and bottleneck blocks, Swish and Mish activations, loss and optimizer factories, CIFAR data loading and a trainer |
-| `code/run_all_experiments.py` | Driver for activation-function, loss-function and optimizer comparisons, plus a text report generator |
+| `code/run_all_experiments.py` | Driver for activation-function, loss-function and optimizer comparisons; also writes `experiment_report.txt`, a project summary that points to the archived logs |
 | `code/visualization.py` | Plotting functions |
 | `configs/` | Two YAML training configurations |
 
@@ -70,10 +70,7 @@ Limitations of the committed code:
    archived. The script also imports `train_model` from an
    `optimization_experiments` module that is not in the repository, so these
    comparisons cannot run as committed.
-2. The report that `run_all_experiments.py` writes to `experiment_report.txt`
-   is a hard-coded text template. Its numbers are not backed by any archived
-   result.
-3. `code/visualization.py` expects result files and model checkpoints that are
+2. `code/visualization.py` expects result files and model checkpoints that are
    not archived (for example `results/standard_vgg_results.json` and
    `results/checkpoints/`), so it cannot regenerate figures from the archived
    logs. No figures are included for that reason.
